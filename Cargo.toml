@@ -1,6 +1,18 @@
 [package]
 name = "zero2prod"
 version = "0.1.0"
+authors = ["Sumit Sarkar"]
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod"
+
 [dependencies]
+actix-web = "4"
+
+[dev-dependencies]
+reqwest = "0.12.5"
