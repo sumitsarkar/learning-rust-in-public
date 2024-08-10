@@ -20,7 +20,7 @@ async fn health_check_works(pool: SqlitePool) {
 #[sqlx::test]
 async fn subscribe_returns_a_200_for_valid_form_data(pool: SqlitePool) {
     let test_app = spawn_app(pool).await;
-    
+
     let client = reqwest::Client::new();
 
     let body = "name=Potato%20Tomato&email=potato%40tomato.com";
