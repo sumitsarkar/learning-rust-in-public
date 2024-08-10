@@ -24,6 +24,20 @@ jobs:
             --locked
       - name: Migrate database
         run: ./scripts/init_db.sh
+      - name: Replace Configuration File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: configuration.yaml.template
+          output: configuration.yaml
+      - name: Replace Environment File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: .env.template
+          output: .env
       - name: Run tests
         run: cargo test
   fmt:
@@ -46,7 +60,21 @@ jobs:
             --no-default-features
             --locked
       - name: Migrate database
-        run: SKIP_DOCKER=true ./scripts/init_db.sh
+        run: ./scripts/init_db.sh
+      - name: Replace Configuration File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: configuration.yaml.template
+          output: configuration.yaml
+      - name: Replace Environment File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: .env.template
+          output: .env
       - name: Enforce formatting
         run: cargo fmt --check
   clippy:
@@ -69,7 +97,21 @@ jobs:
             --no-default-features
             --locked
       - name: Migrate database
-        run: SKIP_DOCKER=true ./scripts/init_db.sh
+        run: ./scripts/init_db.sh
+      - name: Replace Configuration File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: configuration.yaml.template
+          output: configuration.yaml
+      - name: Replace Environment File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: .env.template
+          output: .env
       - name: Linting
         run: cargo clippy -- -D warnings
   coverage:
@@ -93,7 +135,21 @@ jobs:
             --no-default-features
             --locked
       - name: Migrate database
-        run: SKIP_DOCKER=true ./scripts/init_db.sh
+        run: ./scripts/init_db.sh
+      - name: Replace Configuration File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: configuration.yaml.template
+          output: configuration.yaml
+      - name: Replace Environment File
+        uses: danielr1996/envsubst-action@1.0.0
+        env:
+            BASE_PATH: ${GITHUB_WORKSPACE}
+        with:
+          input: .env.template
+          output: .env
       - name: Generate code coverage
         run: |
           cargo tarpaulin --verbose --workspace
