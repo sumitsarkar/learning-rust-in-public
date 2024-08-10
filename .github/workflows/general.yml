@@ -2,6 +2,8 @@ name: Rust
 on: [push, pull_request]
 env:
   CARGO_TERM_COLOR: always
+  SQLX_VERSION: 0.8.0
+  SQLX_FEATURES: "rustls,sqlite"
 jobs:
   test:
     name: Test
@@ -10,6 +12,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
+        with:
+          # An additional cache key that is added alongside the automatic `job`-based cache key and can be used to further differentiate jobs. default: empty
+          key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Install sqlx-cli
+        run:
+            cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+      - name: Migrate database
+        run: ./scripts/init_db.sh
       - name: Run tests
         run: cargo test
   fmt:
@@ -19,8 +33,43 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
+          components: rustfmt
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # An additional cache key that is added alongside the automatic `job`-based cache key and can be used to further differentiate jobs. default: empty
+          key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Install sqlx-cli
+        run:
+            cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
+      - name: Enforce formatting
+        run: cargo fmt --check
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          # An additional cache key that is added alongside the automatic `job`-based cache key and can be used to further differentiate jobs. default: empty
+          key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Install sqlx-cli
+        run:
+            cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
       - name: Linting
         run: cargo clippy -- -D warnings
   coverage:
@@ -32,6 +81,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+        with:
+          # An additional cache key that is added alongside the automatic `job`-based cache key and can be used to further differentiate jobs. default: empty
+          key: sqlx-${{ env.SQLX_VERSION }}
+      - name: Install sqlx-cli
+        run:
+            cargo install sqlx-cli
+            --version=${{ env.SQLX_VERSION }}
+            --features ${{ env.SQLX_FEATURES }}
+            --no-default-features
+            --locked
+      - name: Migrate database
+        run: SKIP_DOCKER=true ./scripts/init_db.sh
       - name: Generate code coverage
         run: |
           cargo tarpaulin --verbose --workspace
