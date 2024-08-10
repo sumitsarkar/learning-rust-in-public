@@ -27,8 +27,4 @@ impl DatabaseSettings {
     pub fn connection_string(&self) -> String {
         format!("{}/{}.db", self.base_path, self.database_name)
     }
-
-    pub fn connection_string_without_db(&self) -> String {
-        format!("{}", self.base_path)
-    }
 }
