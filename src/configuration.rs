@@ -60,7 +60,10 @@ impl DatabaseSettings {
         ))
     }
     pub async fn create_database_if_missing(&self) {
-        tracing::info!("Creating database at: {}", self.connection_string().expose_secret());
+        tracing::info!(
+            "Creating database at: {}",
+            self.connection_string().expose_secret()
+        );
         Sqlite::create_database(self.connection_string().expose_secret())
             .await
             .expect("Failed to create database.");
