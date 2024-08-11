@@ -20,4 +20,5 @@ WORKDIR /app
 RUN mkdir -p /app/data
 COPY --from=builder /app/target/release/zero2prod /usr/local/bin
 COPY configuration configuration
+ENV APP_ENVIRONMENT production
 ENTRYPOINT ["/usr/local/bin/zero2prod"]
