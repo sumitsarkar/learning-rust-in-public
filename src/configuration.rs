@@ -1,4 +1,5 @@
 use config::ConfigError;
+use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -9,7 +10,7 @@ pub struct Settings {
 
 #[derive(Deserialize)]
 pub struct DatabaseSettings {
-    pub base_path: String,
+    pub base_path: Secret<String>,
     pub database_name: String,
 }
 
@@ -24,7 +25,11 @@ pub fn get_configuration() -> Result<Settings, ConfigError> {
 }
 
 impl DatabaseSettings {
-    pub fn connection_string(&self) -> String {
-        format!("{}/{}.db", self.base_path, self.database_name)
+    pub fn connection_string(&self) -> Secret<String> {
+        Secret::new(format!(
+            "{}/{}.db",
+            self.base_path.expose_secret(),
+            self.database_name
+        ))
     }
 }
