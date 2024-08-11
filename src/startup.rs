@@ -26,3 +26,7 @@ pub fn run(listener: TcpListener, db_pool: SqlitePool) -> Result<Server, Error> 
 
     Ok(server)
 }
+
+pub async fn run_migration(db_pool: &SqlitePool) {
+    sqlx::migrate!("./migrations").run(db_pool).await.expect("Failed to migrate database");
+}
