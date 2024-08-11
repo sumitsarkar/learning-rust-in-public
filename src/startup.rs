@@ -31,10 +31,7 @@ pub fn run(listener: TcpListener, db_pool: SqlitePool) -> Result<Server, Error> 
 
 pub async fn run_migration(db_pool: &SqlitePool) {
     let migrations = if env::var("APP_ENVIRONMENT") == Ok("production".to_string()) {
-        // Productions migrations dir
-        std::env::current_exe()
-            .expect("Error getting executable path")
-            .join("./migrations")
+        Path::new("/app/migrations").join("")
     } else {
         // Development migrations dir
         let crate_dir =
