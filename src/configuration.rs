@@ -60,10 +60,12 @@ impl DatabaseSettings {
         ))
     }
     pub async fn create_database_if_missing(&self) {
-        match Sqlite::database_exists(self.connection_string().expose_secret()).await  {
-            Ok(_) => {},
+        match Sqlite::database_exists(self.connection_string().expose_secret()).await {
+            Ok(_) => {}
             Err(_) => {
-                Sqlite::create_database(self.connection_string().expose_secret()).await.expect("Failed to create database.");
+                Sqlite::create_database(self.connection_string().expose_secret())
+                    .await
+                    .expect("Failed to create database.");
             }
         }
     }
