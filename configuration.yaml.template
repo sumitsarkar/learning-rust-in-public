@@ -1,4 +1,0 @@
-application_port: 8000
-database:
-  base_path: "sqlite://${BASE_PATH}/data"
-  database_name: "sqlite"
