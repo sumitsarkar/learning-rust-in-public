@@ -1,10 +1,7 @@
 use once_cell::sync::Lazy;
 use sqlx::SqlitePool;
 use std::net::TcpListener;
-use tracing::subscriber;
-use tracing_subscriber::fmt::init;
 use zero2prod::{
-    routes::subscriptions,
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };

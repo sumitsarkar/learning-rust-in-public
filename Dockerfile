@@ -11,6 +11,7 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
+ENV SQLX_OFFLINE true
 RUN cargo build --release --bin zero2prod
 
 # We do not need the Rust toolchain to run the binary!
@@ -19,4 +20,6 @@ WORKDIR /app
 RUN mkdir -p /app/data
 COPY --from=builder /app/target/release/zero2prod /usr/local/bin
 COPY configuration configuration
+COPY migrations migrations
+ENV APP_ENVIRONMENT production
 ENTRYPOINT ["/usr/local/bin/zero2prod"]

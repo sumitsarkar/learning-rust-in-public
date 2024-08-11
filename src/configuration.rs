@@ -2,6 +2,7 @@ use config::ConfigError;
 use secrecy::{ExposeSecret, Secret};
 use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
+use sqlx::{migrate::MigrateDatabase, Sqlite};
 
 #[derive(Deserialize)]
 pub struct Settings {
@@ -57,6 +58,15 @@ impl DatabaseSettings {
             self.base_path.expose_secret(),
             self.database_name
         ))
+    }
+    pub async fn create_database_if_missing(&self) {
+        tracing::info!(
+            "Creating database at: {}",
+            self.connection_string().expose_secret()
+        );
+        Sqlite::create_database(self.connection_string().expose_secret())
+            .await
+            .expect("Failed to create database.");
     }
 }
 
