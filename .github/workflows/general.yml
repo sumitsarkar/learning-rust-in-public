@@ -24,13 +24,6 @@ jobs:
             --locked
       - name: Migrate database
         run: ./scripts/init_db.sh
-      - name: Replace Configuration File
-        uses: danielr1996/envsubst-action@1.0.0
-        env:
-            BASE_PATH: ${GITHUB_WORKSPACE}
-        with:
-          input: configuration.yaml.template
-          output: configuration.yaml
       - name: Replace Environment File
         uses: danielr1996/envsubst-action@1.0.0
         env:
@@ -61,13 +54,6 @@ jobs:
             --locked
       - name: Migrate database
         run: ./scripts/init_db.sh
-      - name: Replace Configuration File
-        uses: danielr1996/envsubst-action@1.0.0
-        env:
-            BASE_PATH: ${GITHUB_WORKSPACE}
-        with:
-          input: configuration.yaml.template
-          output: configuration.yaml
       - name: Replace Environment File
         uses: danielr1996/envsubst-action@1.0.0
         env:
@@ -98,13 +84,6 @@ jobs:
             --locked
       - name: Migrate database
         run: ./scripts/init_db.sh
-      - name: Replace Configuration File
-        uses: danielr1996/envsubst-action@1.0.0
-        env:
-            BASE_PATH: ${GITHUB_WORKSPACE}
-        with:
-          input: configuration.yaml.template
-          output: configuration.yaml
       - name: Replace Environment File
         uses: danielr1996/envsubst-action@1.0.0
         env:
@@ -136,13 +115,6 @@ jobs:
             --locked
       - name: Migrate database
         run: ./scripts/init_db.sh
-      - name: Replace Configuration File
-        uses: danielr1996/envsubst-action@1.0.0
-        env:
-            BASE_PATH: ${GITHUB_WORKSPACE}
-        with:
-          input: configuration.yaml.template
-          output: configuration.yaml
       - name: Replace Environment File
         uses: danielr1996/envsubst-action@1.0.0
         env:
