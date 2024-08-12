@@ -1,12 +1,8 @@
-use fake::{Fake, Faker};
 use once_cell::sync::Lazy;
-use secrecy::Secret;
 use sqlx::SqlitePool;
-use std::net::TcpListener;
 use zero2prod::{
     configuration::get_configuration,
-    email_client::EmailClient,
-    startup::run,
+    startup::Application,
     telemetry::{get_subscriber, init_subscriber},
 };
 
@@ -30,26 +26,19 @@ static TRACING: Lazy<()> = Lazy::new(|| {
 
 pub async fn spawn_app(pool: SqlitePool) -> TestApp {
     Lazy::force(&TRACING);
-    let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
-    let port = listener.local_addr().unwrap().port();
-    let address = format!("http://127.0.0.1:{}", port);
 
-    let configuration = get_configuration().expect("Failed to read configuration.");
+    let configuration = {
+        let mut c = get_configuration().expect("Failed to read configuration.");
+        c.application.port = 0;
+        c
+    };
 
-    let sender_email = configuration
-        .email_client
-        .sender()
-        .expect("Invalid sender email address.");
-    let timeout = configuration.email_client.timeout();
-    let email_client = EmailClient::new(
-        configuration.email_client.base_url,
-        sender_email,
-        Secret::new(Faker.fake()),
-        timeout,
-    );
-
-    let server = run(listener, pool.clone(), email_client).expect("Failed to bind address.");
-    let _ = tokio::spawn(server);
+    // Launch the application as a background task
+    let application = Application::build(configuration.clone(), Option::from(pool.clone()))
+        .await
+        .expect("Failed to build application.");
+    let address = format!("http://localhost:{}", application.port());
+    let _ = tokio::spawn(application.run_until_stopped());
 
     TestApp {
         address,
