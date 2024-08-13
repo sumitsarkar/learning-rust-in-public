@@ -33,6 +33,9 @@ jobs:
           output: .env
       - name: Run tests
         run: cargo test
+      - name: Check sqlx-data.json is up-to-date
+        run: |
+          cargo sqlx prepare --workspace --check
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
