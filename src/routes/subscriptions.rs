@@ -98,7 +98,7 @@ fn generate_subscription_token() -> String {
 }
 
 #[tracing::instrument {
-    name = "",
+    name = "Storing subscription token",
     skip(transaction, subscription_token)
 }]
 pub async fn store_token(
