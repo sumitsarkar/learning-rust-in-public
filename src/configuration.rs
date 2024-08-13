@@ -4,33 +4,59 @@ use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{migrate::MigrateDatabase, Sqlite};
 
-#[derive(Deserialize)]
+use crate::domain::subscriber_email::SubscriberEmail;
+
+#[derive(Deserialize, Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
+    pub email_client: EmailClientSettings,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct DatabaseSettings {
     pub base_path: Secret<String>,
     pub database_name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Clone)]
 pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
     pub host: String,
 }
 
-pub fn get_configuration() -> Result<Settings, ConfigError> {
-    let base_path = std::env::current_dir().expect("Failed to determine the current directory");
-    let configuration_directory = base_path.join("configuration");
+#[derive(Deserialize, Clone)]
+pub struct EmailClientSettings {
+    pub base_url: String,
+    pub sender_email: String,
+    pub authorization_token: Secret<String>,
+    pub timeout_milliseconds: u64,
+}
 
+impl EmailClientSettings {
+    pub fn sender(&self) -> Result<SubscriberEmail, String> {
+        SubscriberEmail::parse(self.sender_email.clone())
+    }
+    pub fn timeout(&self) -> std::time::Duration {
+        std::time::Duration::from_millis(self.timeout_milliseconds)
+    }
+}
+
+pub fn get_environment() -> Environment {
     let environment: Environment = std::env::var("APP_ENVIRONMENT")
         .unwrap_or_else(|_| "local".into())
         .try_into()
         .expect("Failed to parse APP_ENVIRONMENT.");
+
+    environment
+}
+
+pub fn get_configuration() -> Result<Settings, ConfigError> {
+    let base_path = std::env::current_dir().expect("Failed to determine the current directory");
+    let configuration_directory = base_path.join("configuration");
+
+    let environment: Environment = get_environment();
 
     let environment_filename = format!("{}.yaml", environment.as_str());
 

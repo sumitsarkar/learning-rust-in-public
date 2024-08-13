@@ -1,6 +1,9 @@
+use crate::configuration::{get_environment, DatabaseSettings, Settings};
+use crate::email_client::EmailClient;
 use crate::routes;
 use actix_web::dev::Server;
 use actix_web::{web, App, HttpServer};
+use secrecy::ExposeSecret;
 use sqlx::SqlitePool;
 use std::env;
 use std::io::Error;
@@ -8,8 +11,85 @@ use std::net::TcpListener;
 use std::path::Path;
 use tracing_actix_web::TracingLogger;
 
-pub fn run(listener: TcpListener, db_pool: SqlitePool) -> Result<Server, Error> {
+pub struct Application {
+    port: u16,
+    server: Server,
+}
+
+pub async fn get_connection_pool(
+    database_configuration: &DatabaseSettings,
+    pool: Option<SqlitePool>,
+) -> SqlitePool {
+    match pool {
+        Some(p) => p,
+        None => {
+            let connection_pool = SqlitePool::connect_lazy(
+                database_configuration.connection_string().expose_secret(),
+            )
+            .expect("Failed to connect to Sqlite.");
+            connection_pool
+        }
+    }
+}
+
+impl Application {
+    pub async fn build(configuration: Settings, pool: Option<SqlitePool>) -> Result<Self, Error> {
+        let connection_pool = get_connection_pool(&configuration.database, pool).await;
+
+        match get_environment() {
+            crate::configuration::Environment::Local => {
+                tracing::info!("Make sure you build the database and run migrations manually.")
+            }
+            crate::configuration::Environment::Production => {
+                tracing::info!("Building database and running migrations...");
+                configuration.database.create_database_if_missing().await;
+
+                // Run Migrations
+                run_migration(&connection_pool).await;
+                tracing::info!("Migrations completed.");
+            }
+        }
+
+        let sender_email = configuration
+            .email_client
+            .sender()
+            .expect("Invalid sender email address.");
+        let timeout = configuration.email_client.timeout();
+        let email_client = EmailClient::new(
+            configuration.email_client.base_url,
+            sender_email,
+            configuration.email_client.authorization_token,
+            timeout,
+        );
+
+        let address = format!(
+            "{}:{}",
+            configuration.application.host, configuration.application.port
+        );
+
+        dbg!(&address);
+        let listener = TcpListener::bind(address)?;
+        let port = listener.local_addr().unwrap().port();
+        let server = run(listener, connection_pool, email_client)?;
+        Ok(Self { port, server })
+    }
+
+    pub fn port(&self) -> u16 {
+        self.port
+    }
+
+    pub async fn run_until_stopped(self) -> Result<(), std::io::Error> {
+        self.server.await
+    }
+}
+
+pub fn run(
+    listener: TcpListener,
+    db_pool: SqlitePool,
+    email_client: EmailClient,
+) -> Result<Server, Error> {
     let db_pool = web::Data::new(db_pool);
+    let email_client = web::Data::new(email_client);
     let server = HttpServer::new(move || {
         App::new()
             .wrap(TracingLogger::default())
@@ -22,6 +102,7 @@ pub fn run(listener: TcpListener, db_pool: SqlitePool) -> Result<Server, Error> 
                 web::post().to(routes::subscriptions::subscribe),
             )
             .app_data(db_pool.clone())
+            .app_data(email_client.clone())
     })
     .listen(listener)?
     .run();
