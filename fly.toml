@@ -9,6 +9,7 @@ primary_region = 'ams'
 [build]
 
 [env]
+  APP_APPLICATION__BASE_URL = "https://zero2prod-billowing-bird-4500.fly.dev"
 
 [http_service]
   internal_port = 8000
