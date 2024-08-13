@@ -4,4 +4,3 @@ database:
   base_path: "sqlite:///app/data"
 email_client:
   base_url: "https://api.postmarkapp.com"
-  sender_email: "admin@example.com"
