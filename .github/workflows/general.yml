@@ -24,9 +24,6 @@ jobs:
             --locked
       - name: Migrate database
         run: ./scripts/init_db.sh
-      - name: Check sqlx-data.json is up-to-date
-        run: |
-          cargo sqlx prepare --workspace --check
       - name: Replace Environment File
         uses: danielr1996/envsubst-action@1.0.0
         env:
@@ -36,6 +33,9 @@ jobs:
           output: .env
       - name: Run tests
         run: cargo test
+      - name: Check sqlx-data.json is up-to-date
+        run: |
+          cargo sqlx prepare --workspace --check
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest
