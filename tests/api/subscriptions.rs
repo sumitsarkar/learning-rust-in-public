@@ -170,3 +170,18 @@ async fn clicking_on_the_confirmation_link_confirms_a_subscriber(pool: SqlitePoo
     assert_eq!(saved.name, "falana dekana");
     assert_eq!(saved.status, "confirmed");
 }
+
+#[sqlx::test]
+async fn subscribe_fails_if_there_is_a_fatal_database_error(pool: SqlitePool) {
+    let app = spawn_app(pool).await;
+    let body = "name=falana%20dekana&email=falana%40dekana.com";
+
+    sqlx::query("DROP TABLE subscription_tokens;")
+        .execute(&app.db_pool)
+        .await
+        .unwrap();
+
+    let response = app.post_subscriptions(body.into()).await;
+
+    assert_eq!(response.status().as_u16(), 500);
+}
