@@ -176,7 +176,7 @@ async fn subscribe_fails_if_there_is_a_fatal_database_error(pool: SqlitePool) {
     let app = spawn_app(pool).await;
     let body = "name=falana%20dekana&email=falana%40dekana.com";
 
-    sqlx::query("DROP TABLE subscription_tokens;")
+    sqlx::query("DROP TABLE subscriptions;")
         .execute(&app.db_pool)
         .await
         .unwrap();
