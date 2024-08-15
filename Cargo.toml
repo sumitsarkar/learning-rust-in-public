@@ -13,12 +13,14 @@ name = "zero2prod"
 
 [dependencies]
 actix-web = "4"
+anyhow = "1.0.86"
 chrono = "0.4.38"
 config = "0.14.0"
 rand = "0.8.5"
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.205", features = ["derive"] }
 serde-aux = "4.5.0"
+thiserror = "1.0.63"
 tracing = { version = "0.1.40", features = ["log"] }
 tracing-actix-web = "0.7.11"
 tracing-bunyan-formatter = "0.3.9"
