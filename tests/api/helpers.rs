@@ -1,6 +1,9 @@
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use linkify::{LinkFinder, LinkKind};
 use once_cell::sync::Lazy;
+use rand::rngs::OsRng;
 use sqlx::SqlitePool;
+use tsid::create_tsid;
 use uuid::Uuid;
 use wiremock::MockServer;
 use zero2prod::{
@@ -14,6 +17,7 @@ pub struct TestApp {
     pub port: u16,
     pub db_pool: SqlitePool,
     pub email_server: MockServer,
+    pub test_user: TestUser,
 }
 
 impl TestApp {
@@ -51,7 +55,7 @@ impl TestApp {
     pub async fn post_newsletters(&self, body: serde_json::Value) -> reqwest::Response {
         reqwest::Client::new()
             .post(&format!("{}/newsletters", &self.address))
-            .basic_auth(Uuid::new_v4().to_string(), Some(Uuid::new_v4().to_string()))
+            .basic_auth(&self.test_user.username, Some(&self.test_user.password))
             .json(&body)
             .send()
             .await
@@ -92,15 +96,53 @@ pub async fn spawn_app(pool: SqlitePool) -> TestApp {
     let address = format!("http://localhost:{}", application_port);
     let _ = tokio::spawn(application.run_until_stopped());
 
-    TestApp {
+    let test_app = TestApp {
         address,
         port: application_port,
         db_pool: pool,
         email_server,
-    }
+        test_user: TestUser::generate(),
+    };
+    test_app.test_user.store(&test_app.db_pool).await;
+    test_app
 }
 
 pub struct ConfirmationLinks {
     pub html: reqwest::Url,
     pub plain_text: reqwest::Url,
+}
+
+pub struct TestUser {
+    pub user_id: String,
+    pub username: String,
+    pub password: String,
+}
+
+impl TestUser {
+    pub fn generate() -> Self {
+        Self {
+            user_id: create_tsid().to_string(),
+            username: Uuid::new_v4().to_string(),
+            password: Uuid::new_v4().to_string(),
+        }
+    }
+
+    async fn store(&self, pool: &SqlitePool) {
+        let salt = SaltString::generate(&mut OsRng);
+        let password_hash = Argon2::default()
+            .hash_password(self.password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
+
+        sqlx::query!(
+            "INSERT INTO users(user_id, username, password_hash)
+            VALUES ($1, $2, $3)",
+            self.user_id,
+            self.username,
+            password_hash
+        )
+        .execute(pool)
+        .await
+        .expect("Failed to store test user.");
+    }
 }
