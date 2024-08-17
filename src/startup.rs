@@ -1,7 +1,6 @@
 use crate::configuration::{get_environment, DatabaseSettings, Settings};
 use crate::email_client::EmailClient;
-use crate::routes;
-use crate::routes::newsletters::publish_newsletter;
+use crate::routes::{self, site};
 use actix_web::dev::Server;
 use actix_web::{web, App, HttpServer};
 use secrecy::ExposeSecret;
@@ -115,7 +114,13 @@ pub fn run(
                 "/subscriptions/confirm",
                 web::get().to(routes::subscriptions_confirm::confirm),
             )
-            .route("/newsletters", web::post().to(publish_newsletter))
+            .route(
+                "/newsletters",
+                web::post().to(routes::newsletters::publish_newsletter),
+            )
+            .route("/", web::get().to(site::home::home))
+            .route("/login", web::get().to(site::login::login_form))
+            .route("/login", web::post().to(site::login::login))
             .app_data(db_pool.clone())
             .app_data(email_client.clone())
             .app_data(base_url.clone())
