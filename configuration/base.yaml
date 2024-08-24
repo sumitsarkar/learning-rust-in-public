@@ -1,5 +1,6 @@
 application: 
   port: 8000
+  hmac_secret: "long-and-very-secret-random-key-needed-to-verify-message-integrity"
 database:
   database_name: "sqlite"
 email_client:
