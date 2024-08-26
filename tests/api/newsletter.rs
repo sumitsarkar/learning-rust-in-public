@@ -1,11 +1,10 @@
 use sqlx::SqlitePool;
-use uuid::Uuid;
 use wiremock::{
     matchers::{any, method, path},
     Mock, ResponseTemplate,
 };
 
-use crate::helpers::{spawn_app, ConfirmationLinks, TestApp};
+use crate::helpers::{assert_is_redirect_to, spawn_app, ConfirmationLinks, TestApp};
 
 /// Use the public API of the application under test to create an unconfirmed subscriber.
 async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
@@ -34,10 +33,21 @@ async fn create_unconfirmed_subscriber(app: &TestApp) -> ConfirmationLinks {
     app.get_confirmation_links(&email_req)
 }
 
+async fn create_confirmed_subscriber(app: &TestApp) {
+    // We can then reuse the same helper and add an extra step to actually call the confirmation link!
+    let confirmation_link = create_unconfirmed_subscriber(app).await;
+    reqwest::get(confirmation_link.html)
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+}
+
 #[sqlx::test]
 async fn newsletters_are_not_delivered_to_unconfirmed_subscribers(pool: SqlitePool) {
     let app = spawn_app(pool).await;
     create_unconfirmed_subscriber(&app).await;
+    app.test_user.login(&app).await;
 
     Mock::given(any())
         .respond_with(ResponseTemplate::new(200))
@@ -50,21 +60,24 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers(pool: SqlitePo
     // We might change it later on.
     let newsletter_request_body = serde_json::json!({
         "title": "Newsletter Title",
-        "content": {
-            "text": "Newsletter body as plain test",
-            "html": "<p>Newsletter body as HTML</p>"
-        }
+        "text_content": "Newsletter body as plain test",
+        "html_content": "<p>Newsletter body as HTML</p>"
     });
 
-    let response = TestApp::post_newsletters(&app, newsletter_request_body).await;
+    let response = app.post_newsletters(&newsletter_request_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
 
-    assert_eq!(response.status().as_u16(), 200);
+    // Act - Part 2 - Follow redirect
+    let html_page = app.get_newsletter_html().await;
+    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"));
 }
 
 #[sqlx::test]
 async fn newsletters_are_delivered_to_confirmed_subscribers(pool: SqlitePool) {
     let app = spawn_app(pool).await;
     create_confirmed_subscriber(&app).await;
+
+    app.test_user.login(&app).await;
 
     Mock::given(path("/email"))
         .and(method("POST"))
@@ -75,134 +88,51 @@ async fn newsletters_are_delivered_to_confirmed_subscribers(pool: SqlitePool) {
 
     let newsletter_request_body = serde_json::json!({
         "title": "Newsletter Title",
-        "content": {
-            "text": "Newsletter body as plain text",
-            "html": "<p>Newsletter body as HTML</p>"
-        }
+        "text_content": "Newsletter body as plain test",
+        "html_content": "<p>Newsletter body as HTML</p>"
     });
 
-    let response = TestApp::post_newsletters(&app, newsletter_request_body).await;
+    let response = app.post_newsletters(&newsletter_request_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
 
-    assert_eq!(response.status().as_u16(), 200);
+    // Act - Part 2 - Follow redirect
+    let html_page = app.get_newsletter_html().await;
+    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"));
 }
 
 #[sqlx::test]
-async fn newsletters_returns_400_for_invalid_data(pool: SqlitePool) {
+async fn get_newsletter_page(pool: SqlitePool) {
     let app = spawn_app(pool).await;
-    let test_cases = vec![
-        (
-            serde_json::json!({
-                "content": {
-                    "text": "Newsletter body as plain text",
-                    "html": "<p>Newsletter body as HTML</p>"
-                }
-            }),
-            "missing title",
-        ),
-        (
-            serde_json::json!({"title": "Newsletter"}),
-            "missing content",
-        ),
-    ];
 
-    for (invalid_body, error_message) in test_cases {
-        let response = TestApp::post_newsletters(&app, invalid_body).await;
+    // Act - Part 1 - Login
+    app.test_user.login(&app).await;
 
-        assert_eq!(
-            400,
-            response.status().as_u16(),
-            "The API did not fail with 400 Bad Request when the payload was {}.",
-            error_message
-        )
-    }
-}
+    // Act - Part 2 - Extract Link to Newsletter page
+    let html_page = app.get_newsletter_html().await;
+    assert!(html_page.contains(r#"<form action="/admin/newsletters" method="post">"#));
 
-async fn create_confirmed_subscriber(app: &TestApp) {
-    // We can then reuse the same helper and add an extra step to actually call the confirmation link!
-    let confirmation_link = create_unconfirmed_subscriber(app).await;
-    reqwest::get(confirmation_link.html)
-        .await
-        .unwrap()
-        .error_for_status()
-        .unwrap();
+    // Act - Part 3 - Submit a new Newsletter
 }
 
 #[sqlx::test]
-async fn requests_missing_authorization_are_rejected(pool: SqlitePool) {
+async fn you_must_be_logged_in_to_see_the_newsletter_form(pool: SqlitePool) {
     let app = spawn_app(pool).await;
 
-    let response = reqwest::Client::new()
-        .post(&format!("{}/newsletters", &app.address))
-        .json(&serde_json::json!({
-            "title": "Newsletter Title",
-            "content": {
-                "text": "Newsletter body as plain text",
-                "html": "<p>Newsletter body as HTML</p>"
-            }
-        }))
-        .send()
-        .await
-        .expect("Failed to execute request.");
+    let response = app.get_publish_newsletter().await;
 
-    assert_eq!(401, response.status().as_u16());
-    assert_eq!(
-        r#"Basic realm="publish""#,
-        response.headers()["WWW-Authenticate"]
-    );
+    assert_is_redirect_to(&response, "/login");
 }
 
 #[sqlx::test]
-async fn non_existing_user_is_rejected(pool: SqlitePool) {
+async fn you_must_be_logged_in_to_publish_a_newsletter(pool: SqlitePool) {
     let app = spawn_app(pool).await;
-    let username = Uuid::new_v4().to_string();
-    let password = Uuid::new_v4().to_string();
 
-    let response = reqwest::Client::new()
-        .post(&format!("{}/newsletters", &app.address))
-        .basic_auth(username, Some(password))
-        .json(&serde_json::json!({
-            "title": "Newsletter title",
-            "content": {
-                "text": "Newsletter body as plain text",
-                "html": "<p>Newsletter body as HTML</p>"
-            }
-        }))
-        .send()
-        .await
-        .expect("Failed to execute request.");
+    let newsletter_request_body = serde_json::json!({
+        "title": "Newsletter Title",
+        "text_content": "Newsletter body as plain test",
+        "html_content": "<p>Newsletter body as HTML</p>"
+    });
+    let response = app.post_newsletters(&newsletter_request_body).await;
 
-    assert_eq!(401, response.status().as_u16());
-    assert_eq!(
-        r#"Basic realm="publish""#,
-        response.headers()["WWW-Authenticate"]
-    );
-}
-
-#[sqlx::test]
-async fn invalid_password_is_rejected(pool: SqlitePool) {
-    let app = spawn_app(pool).await;
-    let username = &app.test_user.username;
-    // Random password
-    let password = Uuid::new_v4().to_string();
-    assert_ne!(app.test_user.password, password);
-
-    let response = reqwest::Client::new()
-        .post(&format!("{}/newsletters", &app.address))
-        .basic_auth(username, Some(password))
-        .json(&serde_json::json!({
-            "title": "Newsletter title",
-            "content": {
-                "text": "Newsletter body as plain text",
-                "html": "<p>Newsletter body as HTML</p>"
-            }
-        }))
-        .send()
-        .await
-        .expect("Failed to execute request.");
-
-    assert_eq!(401, response.status().as_u16());
-    assert_eq!(
-        r#"Basic realm="publish""#,
-        response.headers()["WWW-Authenticate"]
-    );
+    assert_is_redirect_to(&response, "/login");
 }

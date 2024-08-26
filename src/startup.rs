@@ -132,10 +132,6 @@ pub fn run(
                 "/subscriptions/confirm",
                 web::get().to(routes::subscriptions_confirm::confirm),
             )
-            .route(
-                "/newsletters",
-                web::post().to(routes::newsletters::publish_newsletter),
-            )
             .route("/", web::get().to(site::home::home))
             .route("/login", web::get().to(site::login::get::login_form))
             .route("/login", web::post().to(site::login::post::post))
@@ -154,7 +150,15 @@ pub fn run(
                         "/password",
                         web::post().to(site::admin::password::post::change_password),
                     )
-                    .route("/logout", web::post().to(site::admin::logout::log_out)),
+                    .route("/logout", web::post().to(site::admin::logout::log_out))
+                    .route(
+                        "/newsletters",
+                        web::get().to(site::admin::newsletter::get::get),
+                    )
+                    .route(
+                        "/newsletters",
+                        web::post().to(site::admin::newsletter::post::publish_newsletter),
+                    ),
             )
             .app_data(db_pool_web.clone())
             .app_data(email_client.clone())
