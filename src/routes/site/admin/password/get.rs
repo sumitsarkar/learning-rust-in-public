@@ -1,16 +1,10 @@
-use crate::session_state::TypedSession;
 use actix_web::{http::header::ContentType, HttpResponse};
 use actix_web_flash_messages::IncomingFlashMessages;
 use std::fmt::Write;
 
-use super::post::reject_anonymous_users;
-
 pub async fn change_password_form(
-    session: TypedSession,
     flash_messages: IncomingFlashMessages,
 ) -> Result<HttpResponse, actix_web::Error> {
-    reject_anonymous_users(session).await?;
-
     let mut msg_html = String::new();
     // Display all messages levels, not just errors!
     for m in flash_messages.iter() {

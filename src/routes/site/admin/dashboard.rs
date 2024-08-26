@@ -1,19 +1,14 @@
-use actix_web::{
-    http::header::{ContentType, LOCATION},
-    web, HttpResponse,
-};
+use actix_web::{http::header::ContentType, web, HttpResponse};
 use anyhow::Context;
 use sqlx::SqlitePool;
 
-use crate::{session_state::TypedSession, utils::e500};
-
-use super::password::post::reject_anonymous_users;
+use crate::{authentication::UserId, utils::e500};
 
 pub async fn admin_dashboard(
-    session: TypedSession,
     pool: web::Data<SqlitePool>,
+    user_id: web::ReqData<UserId>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let user_id = reject_anonymous_users(session).await?;
+    let user_id = user_id.into_inner();
     let username = get_username(&user_id, &pool).await.map_err(e500)?;
 
     Ok(HttpResponse::Ok()

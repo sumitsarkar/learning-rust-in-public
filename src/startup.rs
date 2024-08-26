@@ -1,3 +1,4 @@
+use crate::authentication::middleware::reject_anonymous_users;
 use crate::configuration::{get_environment, Settings};
 use crate::email_client::EmailClient;
 use crate::routes::{self, site};
@@ -6,6 +7,7 @@ use crate::utils::get_connection_pool;
 use actix_session::SessionMiddleware;
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
+use actix_web::middleware::from_fn;
 use actix_web::rt::time;
 use actix_web::{web, App, HttpServer};
 use actix_web_flash_messages::storage::CookieMessageStore;
@@ -137,21 +139,22 @@ pub fn run(
             .route("/", web::get().to(site::home::home))
             .route("/login", web::get().to(site::login::get::login_form))
             .route("/login", web::post().to(site::login::post::post))
-            .route(
-                "/admin/dashboard",
-                web::get().to(site::admin::dashboard::admin_dashboard),
-            )
-            .route(
-                "/admin/password",
-                web::get().to(site::admin::password::get::change_password_form),
-            )
-            .route(
-                "/admin/password",
-                web::post().to(site::admin::password::post::change_password),
-            )
-            .route(
-                "/admin/logout",
-                web::post().to(site::admin::logout::log_out),
+            .service(
+                web::scope("/admin")
+                    .wrap(from_fn(reject_anonymous_users))
+                    .route(
+                        "/dashboard",
+                        web::get().to(site::admin::dashboard::admin_dashboard),
+                    )
+                    .route(
+                        "/password",
+                        web::get().to(site::admin::password::get::change_password_form),
+                    )
+                    .route(
+                        "/password",
+                        web::post().to(site::admin::password::post::change_password),
+                    )
+                    .route("/logout", web::post().to(site::admin::logout::log_out)),
             )
             .app_data(db_pool_web.clone())
             .app_data(email_client.clone())
