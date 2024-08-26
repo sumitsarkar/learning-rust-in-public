@@ -79,13 +79,13 @@ pub async fn validate_credentials(
     );
 
     if let Some((stored_user_id, stored_password_hash)) =
-        get_stored_credentials(&credentials.username, &pool).await?
+        get_stored_credentials(&credentials.username, pool).await?
     {
         user_id = Some(stored_user_id);
         expected_password_hash = stored_password_hash;
     }
 
-    let _ = spawn_block_with_tracing(move || {
+    spawn_block_with_tracing(move || {
         verify_password_hash(expected_password_hash, credentials.password)
     })
     .await

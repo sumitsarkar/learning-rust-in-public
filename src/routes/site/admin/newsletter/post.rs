@@ -55,7 +55,7 @@ pub async fn publish_newsletter(
 ) -> Result<HttpResponse, actix_web::Error> {
     let user_id = user_id.into_inner();
 
-    tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+    tracing::Span::current().record("user_id", tracing::field::display(&user_id));
 
     let subscribers = get_confirmed_subscribers(&pool).await.map_err(e500)?;
     for subscriber in subscribers {
