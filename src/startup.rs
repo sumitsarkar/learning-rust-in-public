@@ -1,15 +1,15 @@
 use crate::configuration::{get_environment, Settings};
 use crate::email_client::EmailClient;
-use crate::helpers::get_connection_pool;
 use crate::routes::{self, site};
 use crate::session::SqlxSqliteSessionStore;
+use crate::utils::get_connection_pool;
 use actix_session::SessionMiddleware;
 use actix_web::cookie::Key;
 use actix_web::dev::Server;
 use actix_web::rt::time;
 use actix_web::{web, App, HttpServer};
 use actix_web_flash_messages::storage::CookieMessageStore;
-use actix_web_flash_messages::FlashMessagesFramework;
+use actix_web_flash_messages::{FlashMessagesFramework, Level};
 use secrecy::{ExposeSecret, Secret};
 use sqlx::SqlitePool;
 use std::env;
@@ -59,7 +59,6 @@ impl Application {
             configuration.application.host, configuration.application.port
         );
 
-        dbg!(&address);
         let listener = TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
         let server = run(
@@ -97,7 +96,9 @@ pub fn run(
     let base_url = web::Data::new(ApplicationBaseUrl(base_url));
     let secret_key: Key = Key::from(hmac_secret.expose_secret().as_bytes());
     let message_store = CookieMessageStore::builder(secret_key.clone()).build();
-    let message_framework = FlashMessagesFramework::builder(message_store).build();
+    let message_framework = FlashMessagesFramework::builder(message_store)
+        .minimum_level(Level::Debug)
+        .build();
 
     let session_store_clone = session_store.clone();
     actix_web::rt::task::spawn_blocking(move || async move {
@@ -139,6 +140,18 @@ pub fn run(
             .route(
                 "/admin/dashboard",
                 web::get().to(site::admin::dashboard::admin_dashboard),
+            )
+            .route(
+                "/admin/password",
+                web::get().to(site::admin::password::get::change_password_form),
+            )
+            .route(
+                "/admin/password",
+                web::post().to(site::admin::password::post::change_password),
+            )
+            .route(
+                "/admin/logout",
+                web::post().to(site::admin::logout::log_out),
             )
             .app_data(db_pool_web.clone())
             .app_data(email_client.clone())
