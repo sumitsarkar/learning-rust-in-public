@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT session FROM sessions where id = $1 AND expires > unixepoch()",
+  "describe": {
+    "columns": [
+      {
+        "name": "session",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "00d20cc83bb410f49d61ae648b27b5ac861e9ca7569bc64984577eb26a4e0774"
+}
