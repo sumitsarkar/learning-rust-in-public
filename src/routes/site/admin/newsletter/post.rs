@@ -66,7 +66,7 @@ pub async fn publish_newsletter(
     let idempotency_key: IdempotencyKey = idempotency_key.try_into().map_err(e400)?;
 
     // Return early if we have a saved response in the database
-    let mut transaction = match try_processing(&pool, &idempotency_key, &user_id)
+    let transaction = match try_processing(&pool, &idempotency_key, &user_id)
         .await
         .map_err(e500)?
     {

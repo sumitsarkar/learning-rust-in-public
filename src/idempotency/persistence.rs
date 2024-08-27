@@ -1,9 +1,6 @@
 use actix_web::{body::to_bytes, http::StatusCode, HttpResponse};
-use anyhow::anyhow;
 use serde::{Deserialize, Serialize};
 use sqlx::{types::Json, Sqlite, SqlitePool, Transaction};
-
-use crate::utils::e500;
 
 use super::IdempotencyKey;
 
@@ -11,13 +8,6 @@ use super::IdempotencyKey;
 struct HeaderPairRecord {
     name: String,
     value: Vec<u8>,
-}
-
-#[derive(sqlx::FromRow, Debug)]
-struct IdempotencyRecord {
-    response_status_code: u16,
-    response_headers: sqlx::types::Json<Vec<HeaderPairRecord>>,
-    response_body: Vec<u8>,
 }
 
 pub async fn get_saved_response(
