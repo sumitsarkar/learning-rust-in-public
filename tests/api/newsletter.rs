@@ -61,7 +61,8 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers(pool: SqlitePo
     let newsletter_request_body = serde_json::json!({
         "title": "Newsletter Title",
         "text_content": "Newsletter body as plain test",
-        "html_content": "<p>Newsletter body as HTML</p>"
+        "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
     });
 
     let response = app.post_newsletters(&newsletter_request_body).await;
@@ -89,7 +90,8 @@ async fn newsletters_are_delivered_to_confirmed_subscribers(pool: SqlitePool) {
     let newsletter_request_body = serde_json::json!({
         "title": "Newsletter Title",
         "text_content": "Newsletter body as plain test",
-        "html_content": "<p>Newsletter body as HTML</p>"
+        "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
     });
 
     let response = app.post_newsletters(&newsletter_request_body).await;
@@ -130,9 +132,46 @@ async fn you_must_be_logged_in_to_publish_a_newsletter(pool: SqlitePool) {
     let newsletter_request_body = serde_json::json!({
         "title": "Newsletter Title",
         "text_content": "Newsletter body as plain test",
-        "html_content": "<p>Newsletter body as HTML</p>"
+        "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
     });
     let response = app.post_newsletters(&newsletter_request_body).await;
 
     assert_is_redirect_to(&response, "/login");
+}
+
+#[sqlx::test]
+async fn newsletter_creation_is_idempotent(pool: SqlitePool) {
+    let app = spawn_app(pool).await;
+    create_confirmed_subscriber(&app).await;
+    app.test_user.login(&app).await;
+
+    Mock::given(path("/email"))
+        .and(method("POST"))
+        .respond_with(ResponseTemplate::new(200))
+        .expect(1)
+        .mount(&app.email_server)
+        .await;
+
+    // Act - Part 1 - Submit newsletter form
+    let newsletter_request_body = serde_json::json!({
+        "title": "Newsletter Title",
+        "text_content": "Newsletter body as plain test",
+        "html_content": "<p>Newsletter body as HTML</p>",
+        "idempotency_key": uuid::Uuid::new_v4().to_string()
+    });
+    let response = app.post_newsletters(&newsletter_request_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
+
+    // Act - Part 2 - Follow redirect
+    let html_page = app.get_newsletter_html().await;
+    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"));
+
+    // Act - Part 3 - Submit newsletter form **again**
+    let response = app.post_newsletters(&newsletter_request_body).await;
+    assert_is_redirect_to(&response, "/admin/newsletters");
+
+    // Act - Part 4 - Follow the redirect
+    let html_page = app.get_newsletter_html().await;
+    assert!(html_page.contains("<p><i>The newsletter issue has been published!</i></p>"));
 }

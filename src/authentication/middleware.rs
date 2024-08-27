@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[derive(Clone, Debug)]
-pub struct UserId(String);
+pub struct UserId(pub String);
 
 impl std::fmt::Display for UserId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
