@@ -7,7 +7,7 @@ use crate::{
     authentication::UserId,
     domain::subscriber_email::SubscriberEmail,
     email_client::EmailClient,
-    idempotency::{get_saved_response, save_response, IdempotencyKey},
+    idempotency::{save_response, try_processing, IdempotencyKey, NextAction},
     utils::{e400, e500, see_other},
 };
 
@@ -64,14 +64,18 @@ pub async fn publish_newsletter(
         idempotency_key,
     } = form.0;
     let idempotency_key: IdempotencyKey = idempotency_key.try_into().map_err(e400)?;
+
     // Return early if we have a saved response in the database
-    if let Some(saved_response) = get_saved_response(&pool, &idempotency_key, &user_id.0)
+    let mut transaction = match try_processing(&pool, &idempotency_key, &user_id)
         .await
         .map_err(e500)?
     {
-        FlashMessage::error("The newsletter issue has been published!").send();
-        return Ok(saved_response);
-    }
+        NextAction::StartProcessing(t) => t,
+        NextAction::ReturnSavedResponse(saved_response) => {
+            success_message().send();
+            return Ok(saved_response);
+        }
+    };
 
     tracing::Span::current().record("user_id", tracing::field::display(&user_id));
 
@@ -96,10 +100,14 @@ pub async fn publish_newsletter(
             }
         }
     }
-    FlashMessage::error("The newsletter issue has been published!").send();
+    success_message().send();
     let response = see_other("/admin/newsletters");
-    let response = save_response(&pool, &idempotency_key, &user_id, response)
+    let response = save_response(transaction, &idempotency_key, &user_id, response)
         .await
         .map_err(e500)?;
     Ok(response)
+}
+
+fn success_message() -> FlashMessage {
+    FlashMessage::error("The newsletter issue has been published!")
 }
