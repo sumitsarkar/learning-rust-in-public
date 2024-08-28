@@ -1,6 +1,6 @@
 use crate::authentication::middleware::reject_anonymous_users;
 use crate::configuration::{get_environment, Settings};
-use crate::email_client::EmailClient;
+use crate::email_client::{self, EmailClient};
 use crate::routes::{self, site};
 use crate::session::SqlxSqliteSessionStore;
 use crate::utils::get_connection_pool;
@@ -29,7 +29,7 @@ pub struct Application {
 impl Application {
     pub async fn build(configuration: Settings, pool: Option<SqlitePool>) -> Result<Self, Error> {
         let connection_pool = get_connection_pool(&configuration.database, pool).await;
-
+        let email_client = configuration.email_client.client();
         match get_environment() {
             crate::configuration::Environment::Local => {
                 tracing::info!("Make sure you build the database and run migrations manually.")
@@ -43,18 +43,6 @@ impl Application {
                 tracing::info!("Migrations completed.");
             }
         }
-
-        let sender_email = configuration
-            .email_client
-            .sender()
-            .expect("Invalid sender email address.");
-        let timeout = configuration.email_client.timeout();
-        let email_client = EmailClient::new(
-            configuration.email_client.base_url,
-            sender_email,
-            configuration.email_client.authorization_token,
-            timeout,
-        );
 
         let address = format!(
             "{}:{}",
