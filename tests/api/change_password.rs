@@ -114,7 +114,6 @@ async fn changing_password_works(pool: SqlitePool) {
 
     // Act - Part 5 - Follow the redirect
     let html_page = app.get_login_html().await;
-    dbg!(&html_page);
     assert!(html_page.contains("<p><i>You have successfully logged out.</i></p>"));
 
     // Act - Part 6 - Login using the new password

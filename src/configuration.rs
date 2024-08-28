@@ -4,7 +4,7 @@ use serde::Deserialize;
 use serde_aux::field_attributes::deserialize_number_from_string;
 use sqlx::{migrate::MigrateDatabase, Sqlite};
 
-use crate::domain::subscriber_email::SubscriberEmail;
+use crate::{domain::subscriber_email::SubscriberEmail, email_client::EmailClient};
 
 #[derive(Deserialize, Clone)]
 pub struct Settings {
@@ -42,6 +42,16 @@ impl EmailClientSettings {
     }
     pub fn timeout(&self) -> std::time::Duration {
         std::time::Duration::from_millis(self.timeout_milliseconds)
+    }
+    pub fn client(&self) -> EmailClient {
+        let sender_email = self.sender().expect("Invalid sender email address.");
+        let timeout = self.timeout();
+        EmailClient::new(
+            self.base_url.clone(),
+            sender_email,
+            self.authorization_token.clone(),
+            timeout,
+        )
     }
 }
 
