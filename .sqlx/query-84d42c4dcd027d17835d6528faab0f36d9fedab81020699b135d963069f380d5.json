@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        UPDATE issue_delivery_queue\n        SET locked = 1\n        WHERE newsletter_issue_id = $1 AND subscriber_email = $2\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "84d42c4dcd027d17835d6528faab0f36d9fedab81020699b135d963069f380d5"
+}

@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT title, text_content, html_content \n        FROM newsletter_issues \n        WHERE\n            newsletter_issue_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "title",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "text_content",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "html_content",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "5387086104de9191b648e8cf01d244a50f2f77035d38c57de77debf2c9f1ad9d"
+}

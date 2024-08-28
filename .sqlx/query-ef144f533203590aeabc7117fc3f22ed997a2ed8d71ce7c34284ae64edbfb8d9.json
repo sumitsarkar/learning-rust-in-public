@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT newsletter_issue_id, subscriber_email, locked from issue_delivery_queue WHERE locked = 0 LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "newsletter_issue_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "subscriber_email",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "locked",
+        "ordinal": 2,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ef144f533203590aeabc7117fc3f22ed997a2ed8d71ce7c34284ae64edbfb8d9"
+}

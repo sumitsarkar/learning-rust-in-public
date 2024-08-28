@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "\n        SELECT \n            response_status_code as \"response_status_code!\",\n            response_headers as \"response_headers!\",\n            response_body \"response_body!\" \n        FROM idempotency\n        WHERE\n            user_id = $1 AND\n            idempotency_key = $2\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "response_status_code!",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "response_headers!",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "response_body!",
+        "ordinal": 2,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "c1abd520bb5b7e04028e5a994db42acfd81bdc91c795e635d9c087d301a3463d"
+}
