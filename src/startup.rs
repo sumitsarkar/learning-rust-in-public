@@ -1,6 +1,6 @@
 use crate::authentication::middleware::reject_anonymous_users;
 use crate::configuration::{get_environment, Settings};
-use crate::email_client::{self, EmailClient};
+use crate::email_client::{EmailClient};
 use crate::routes::{self, site};
 use crate::session::SqlxSqliteSessionStore;
 use crate::utils::get_connection_pool;

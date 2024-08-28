@@ -1,14 +1,11 @@
 use std::time::Duration;
 
-use actix_web::rt;
 use anyhow::Context;
-use sqlx::{Acquire, Sqlite, SqlitePool, Transaction};
+use sqlx::{Sqlite, SqlitePool, Transaction};
 use tracing::{field::display, Span};
 
 use crate::{
-    configuration::Settings,
-    domain::subscriber_email::SubscriberEmail,
-    email_client::{self, EmailClient},
+    configuration::Settings, domain::subscriber_email::SubscriberEmail, email_client::EmailClient,
     utils::get_connection_pool,
 };
 
@@ -37,8 +34,8 @@ pub async fn try_execute_task(
     let (transaction, issue_id, email) = task.unwrap();
 
     Span::current()
-        .record("newsletter_issue_id", &display(&issue_id))
-        .record("subscriber_email", &display(&email));
+        .record("newsletter_issue_id", display(&issue_id))
+        .record("subscriber_email", display(&email));
     // TODO: Send email
     match SubscriberEmail::parse(email.clone()) {
         Ok(email) => {
@@ -144,7 +141,7 @@ async fn lock_job(
     Ok(())
 }
 
-async fn unlock_job(
+async fn _unlock_job(
     transaction: &mut SqliteTransaction,
     issue_id: &String,
     subscriber_email: &String,

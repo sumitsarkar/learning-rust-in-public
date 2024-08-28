@@ -6,8 +6,6 @@ use tsid::create_tsid;
 
 use crate::{
     authentication::UserId,
-    domain::subscriber_email::SubscriberEmail,
-    email_client::EmailClient,
     idempotency::{save_response, try_processing, IdempotencyKey, NextAction},
     utils::{e400, e500, see_other},
 };
